@@ -182,7 +182,22 @@ function eventStatus(ev) {
     let need = max[m] || Number(q||0), st = stock[m] || 0, miss = Math.max(0, need-st);
     return {m, need, st, miss};
   });
-  return {status: rows.some(r=>r.miss>0) ? "bad" : "ok", rows};
+  const today = new Date();
+let timeStatus = "⏳ À venir";
+
+const start = new Date(ev.start);
+const end = new Date(ev.end);
+
+if (today >= start && today <= end) {
+  timeStatus = "🔵 En cours";
+} else if (today > end) {
+  timeStatus = "✅ Terminé";
+}
+  return {
+  status: rows.some(r=>r.miss>0) ? "bad" : "ok",
+  rows,
+  timeStatus
+};
 }
 
 function render() {
@@ -201,10 +216,19 @@ function render() {
     if(q && !(ev.name.toLowerCase().includes(q) || Object.keys(ev.needs||{}).join(" ").toLowerCase().includes(q))) return "";
     const st = eventStatus(ev);
     const badge = st.status === "bad" ? `<span class="badge bad">Manque</span>` : st.status === "warn" ? `<span class="badge warn">À compléter</span>` : `<span class="badge ok">OK</span>`;
-    const rows = st.rows.slice(0,6).map(r=>`<tr><td>${r.m}</td><td>${r.st}</td><td>${r.need}</td><td>${r.miss ? `<span class="badge bad">-${r.miss}</span>` : `<span class="badge ok">OK</span>`}</td></tr>`).join("");
-    return `<div class="card" onclick="editEvent(${i})"><div class="row"><div><div class="title">${ev.name}</div><div class="date">${fmt(ev.start)} → ${fmt(ev.end)}</div></div>${badge}</div>${rows ? `<table><tr><th>Matériel</th><th>Stock</th><th>Besoin max</th><th>Résultat</th></tr>${rows}</table>` : `<p class="small">Aucun besoin défini.</p>`}</div>`;
+    const rows = st.rows.slice(0,6).map(r=>`<tr><td>${r.m}</td><td>${r.st}</td><td>${r.need}</td><td>${r.miss ? `<span class="badge bad">-${r.miss}</span>` : `<span class="badge ok">OK</span>`}</td></tr>`).
   }).join("");
-
+  return `<div class="card" onclick="editEvent(${i})">
+  <div class="row">
+    <div>
+      <div class="title">${ev.name}</div>
+      <div class="small">${st.timeStatus}</div>
+      <div class="date">${fmt(ev.start)} → ${fmt(ev.end)}</div>
+    </div>
+    ${badge}
+  </div>
+  ${rows ? `<table><tr><th>Matériel</th><th>Stock</th><th>Besoin</th><th>Résultat</th></tr>${rows}</table>` : ""}
+</div>`;
   const {map, active} = totalsByDay();
   document.getElementById("daysList").innerHTML = Object.entries(map).sort().map(([day,mats]) => {
     const bad = Object.entries(mats).some(([m,q]) => q > (stock[m]||0));
